@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VIT-O-PIA — VIT Bhopal</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --neon-blue: #00f3ff; --neon-purple: #bc13fe; --neon-pink: #ff00ff;
+  --neon-green: #00ff41; --neon-orange: #ff6600; --neon-yellow: #ffff00;
+  --neon-red: #ff0040;
+  --bg: #050505; --surface: #0a0a0c; --border: #1a1a1f; --text: #e0e0e0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'JetBrains Mono', monospace; background: var(--bg); color: var(--text);
+  overflow-x: hidden; font-size: 13px; line-height: 1.4;
+}
+
+/* ── OPENING SCREEN ── */
+#boot-screen {
+  position: fixed; inset: 0; background: #000; z-index: 9999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: 'Orbitron', sans-serif;
+}
+.boot-terminal {
+  width: 90%; max-width: 600px; background: rgba(0,0,0,0.9);
+  border: 1px solid var(--neon-blue); padding: 30px;
+  box-shadow: 0 0 30px rgba(0,243,255,0.2);
+}
+.boot-line {
+  font-size: 11px; color: var(--neon-green); margin: 4px 0;
+  opacity: 0; animation: fadeIn 0.3s forwards;
+}
+.boot-line.error { color: var(--neon-red); }
+.boot-line.warn { color: var(--neon-yellow); }
+.boot-input-line {
+  margin-top: 20px; display: flex; align-items: center; gap: 10px;
+}
+.boot-prompt { color: var(--neon-blue); font-size: 12px; }
+#boot-input {
+  background: transparent; border: none; border-bottom: 1px solid var(--neon-blue);
+  color: var(--neon-green); font-family: 'Orbitron'; font-size: 14px;
+  outline: none; width: 200px; padding: 5px;
+}
+.boot-cursor {
+  display: inline-block; width: 10px; height: 16px;
+  background: var(--neon-blue); animation: blink 1s step-end infinite;
+  margin-left: 5px;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes fadeIn { to { opacity: 1; } }
+
+/* ── MAIN APP (hidden initially) ── */
+#app { display: none; }
+
+/* ── NEON ANIMATIONS ── */
+@keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+@keyframes radar {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(3); opacity: 0; }
+}
+body::after {
+  content: ""; position: fixed; inset: 0;
+  background: linear-gradient(0deg, transparent 50%, rgba(0, 243, 255, 0.02) 50%);
+  background-size: 100% 4px; z-index: 10; pointer-events: none;
+  animation: scanline 10s linear infinite;
+}
+
+/* ── COMPACT NAV ── */
+.topbar {
+  position: sticky; top: 0; z-index: 100; background: rgba(5,5,5,0.95);
+  border-bottom: 2px solid var(--neon-blue); display: flex; align-items: center;
+  justify-content: space-between; padding: 0 1.5rem; height: 50px;
+  box-shadow: 0 0 15px rgba(0,243,255,0.2);
+}
+.logo {
+  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 18px;
+  color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue), 0 0 20px rgba(0, 243, 255, 0.5);
+  letter-spacing: 2px;
+}
+.nav { display: flex; gap: 5px; }
+.nav-btn {
+  background: none; border: 1px solid transparent; color: #666; font-family: 'Orbitron';
+  font-size: 10px; padding: 5px 10px; border-radius: 4px; transition: 0.3s; cursor: pointer;
+}
+.nav-btn:hover, .nav-btn.active {
+  color: var(--neon-blue); border-color: var(--neon-blue);
+  text-shadow: 0 0 8px var(--neon-blue);
+}
+.user-pill { text-align: right; border-left: 1px solid var(--border); padding-left: 15px; }
+.user-name { font-family: 'Orbitron'; font-size: 11px; color: var(--neon-purple); }
+.user-id { font-size: 9px; color: #555; }
+
+/* ── LAYOUT ── */
+.view {
+  display: none; padding: 1rem; max-width: 1000px; margin: 0 auto;
+  animation: glitch 0.3s ease;
+}
+.view.active {
+  display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem;
+}
+@keyframes glitch {
+  0% { opacity: 0; transform: skewX(10deg); }
+  100% { opacity: 1; transform: skewX(0); }
+}
+
+/* ── VTOP UPLINK ── */
+.vtop-uplink {
+  background: linear-gradient(90deg, rgba(255, 255, 0, 0.05), transparent);
+  border: 1px solid var(--neon-yellow); padding: 15px; margin-top: 15px;
+  position: relative; overflow: hidden; display: flex;
+  justify-content: space-between; align-items: center;
+  box-shadow: inset 0 0 10px rgba(255, 255, 0, 0.1);
+}
+.vtop-uplink::before {
+  content: "EXTERNAL_BRIDGE"; position: absolute; top: -2px; right: 10px;
+  background: var(--neon-yellow); color: #000; font-size: 7px;
+  font-family: 'Orbitron'; padding: 2px 5px;
+}
+.vtop-status { display: flex; align-items: center; gap: 10px; }
+.vtop-indicator {
+  width: 8px; height: 8px; background: var(--neon-yellow);
+  border-radius: 50%; box-shadow: 0 0 8px var(--neon-yellow);
+  animation: pulse 1.5s infinite;
+}
+.btn-vtop {
+  background: transparent; border: 1px solid var(--neon-yellow);
+  color: var(--neon-yellow); font-family: 'Orbitron'; font-size: 10px;
+  padding: 8px 15px; text-decoration: none; transition: 0.3s; letter-spacing: 1px;
+}
+.btn-vtop:hover {
+  background: var(--neon-yellow); color: #000;
+  box-shadow: 0 0 15px var(--neon-yellow);
+}
+
+/* ── STATS & CARDS ── */
+.grid-main { display: flex; flex-direction: column; gap: 1rem; }
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.stat-card {
+  background: #0e0e12; border: 1px solid var(--border); padding: 10px;
+  text-align: center; border-bottom: 2px solid var(--neon-purple);
+}
+.stat-val { font-family: 'Orbitron'; font-size: 20px; color: #fff; }
+.r-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.r-card {
+  background: #0e0e12; border: 1px solid var(--border); padding: 12px;
+  transition: 0.2s; position: relative; overflow: hidden; cursor: pointer;
+}
+.r-card:hover { border-color: var(--neon-blue); transform: translateY(-3px); }
+.r-card.selected { border-color: var(--neon-pink); box-shadow: 0 0 10px rgba(255,0,255,0.2); }
+
+/* ── PROCTOR NEWS ── */
+.news-panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+  padding: 10px; height: fit-content;
+}
+.news-header {
+  font-family: 'Orbitron'; color: var(--neon-pink); font-size: 11px;
+  margin-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.news-item { font-size: 11px; padding: 8px 0; border-bottom: 1px dashed #222; }
+.news-tag { color: var(--neon-blue); font-size: 9px; display: block; }
+
+/* ── MAP STYLES ── */
+.map-container {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+  padding: 20px; position: relative; overflow: hidden; min-height: 500px;
+}
+.map-grid {
+  display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(8, 1fr);
+  gap: 2px; height: 400px; position: relative;
+  background: linear-gradient(90deg, rgba(0,243,255,0.03) 1px, transparent 1px),
+              linear-gradient(rgba(0,243,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px; border: 1px solid var(--border);
+}
+.map-location {
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; font-size: 9px;
+  text-align: center; padding: 5px; cursor: pointer; transition: 0.3s;
+  border: 1px solid transparent;
+}
+.map-location:hover {
+  border-color: var(--neon-blue); background: rgba(0,243,255,0.1);
+  box-shadow: 0 0 15px rgba(0,243,255,0.3);
+}
+.map-location.active {
+  border-color: var(--neon-pink); background: rgba(255,0,255,0.1);
+  box-shadow: 0 0 20px rgba(255,0,255,0.4);
+}
+.loc-icon { font-size: 20px; margin-bottom: 3px; }
+.loc-name { font-family: 'Orbitron'; font-size: 8px; color: var(--neon-blue); }
+.loc-type { font-size: 7px; color: #666; text-transform: uppercase; }
+.loc-ab1 { grid-column: 2 / 5; grid-row: 2 / 5; }
+.loc-ab2 { grid-column: 6 / 9; grid-row: 2 / 5; }
+.loc-library { grid-column: 10 / 12; grid-row: 3 / 5; }
+.loc-audi { grid-column: 2 / 5; grid-row: 6 / 8; }
+.loc-hostel { grid-column: 6 / 9; grid-row: 6 / 8; }
+.loc-mess { grid-column: 10 / 12; grid-row: 6 / 7; }
+.loc-gate { grid-column: 5 / 8; grid-row: 1 / 2; }
+.loc-sports { grid-column: 10 / 12; grid-row: 7 / 8; }
+.map-location.active::after {
+  content: ""; position: absolute; width: 100%; height: 100%;
+  border: 1px solid var(--neon-pink); border-radius: 50%;
+  animation: radar 2s infinite;
+}
+.map-connections { position: absolute; inset: 0; pointer-events: none; }
+.connection-line {
+  position: absolute; height: 1px;
+  background: linear-gradient(90deg, var(--neon-blue), transparent); opacity: 0.3;
+}
+.con-ab1-ab2 { top: 35%; left: 30%; width: 25%; transform: rotate(0deg); }
+.con-ab1-audi { top: 50%; left: 20%; width: 20%; transform: rotate(90deg); }
+.con-ab2-hostel { top: 50%; left: 55%; width: 20%; transform: rotate(90deg); }
+.map-info {
+  background: rgba(0,0,0,0.9); border: 1px solid var(--neon-blue); padding: 15px;
+  position: absolute; bottom: 20px; left: 20px; right: 20px; display: none;
+}
+.map-info.show { display: block; animation: slideUp 0.3s ease; }
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.map-legend {
+  display: flex; gap: 15px; margin-top: 10px; font-size: 9px; flex-wrap: wrap;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-academic { background: var(--neon-blue); }
+.dot-hostel { background: var(--neon-purple); }
+.dot-amenity { background: var(--neon-green); }
+.dot-transport { background: var(--neon-orange); }
+
+/* ── TIMETABLE STYLES ── */
+.tt-container {
+  background: var(--surface); border: 1px solid var(--border); padding: 20px;
+}
+.tt-table {
+  width: 100%; border-collapse: collapse; font-size: 10px;
+}
+.tt-table th {
+  background: rgba(0, 243, 255, 0.05); color: var(--neon-blue);
+  font-family: 'Orbitron'; padding: 10px; border: 1px solid var(--border);
+  text-align: center;
+}
+.tt-table td {
+  padding: 8px; border: 1px solid var(--border); text-align: center;
+  transition: 0.3s; height: 60px; width: 11%;
+}
+.tt-slot-active {
+  background: rgba(0, 255, 65, 0.05); border: 1px solid var(--neon-green) !important;
+  color: var(--neon-green); box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.1);
+}
+.tt-subject { display: block; font-family: 'Orbitron'; font-size: 9px; margin-bottom: 4px; }
+.tt-venue { color: #666; font-size: 8px; }
+.day-label {
+  writing-mode: vertical-lr; transform: rotate(180deg);
+  font-family: 'Orbitron'; color: var(--neon-purple);
+  background: rgba(188, 19, 254, 0.05);
+}
+.lunch-break {
+  background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255, 255, 0, 0.05) 5px, rgba(255, 255, 0, 0.05) 10px);
+  color: var(--neon-yellow); font-family: 'Orbitron'; font-size: 8px;
+}
+
+/* ── CALENDAR STYLES ── */
+.cal-container { background: var(--surface); border: 1px solid var(--border); padding: 20px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+.cal-day-label {
+  font-family: 'Orbitron'; font-size: 9px; color: var(--neon-blue);
+  padding: 10px; border-bottom: 1px solid var(--border);
+}
+.cal-date {
+  background: rgba(10, 10, 12, 0.8); border: 1px solid #1a1a1f;
+  padding: 8px; min-height: 80px; position: relative; transition: 0.3s; cursor: pointer;
+}
+.cal-date:hover { border-color: var(--neon-purple); }
+.cal-date.today {
+  border-color: var(--neon-green); box-shadow: 0 0 15px rgba(0,255,65,0.3);
+}
+.date-num { position: absolute; top: 5px; left: 8px; font-size: 10px; color: #555; font-family: 'Orbitron'; }
+.status-instructional { font-size: 7px; color: var(--neon-green); margin-top: 15px; display: block; }
+.status-fat {
+  font-size: 7px; color: var(--neon-red); margin-top: 15px; display: block;
+  font-weight: bold; text-shadow: 0 0 5px rgba(255, 0, 64, 0.4); animation: pulse 2s infinite;
+}
+.status-holiday { font-size: 7px; color: var(--neon-yellow); margin-top: 15px; display: block; }
+.status-none { font-size: 7px; color: #444; margin-top: 15px; display: block; }
+.cal-month-title {
+  font-family: 'Orbitron'; color: var(--neon-pink); font-size: 14px;
+  margin: 20px 0 10px 0; border-left: 3px solid var(--neon-pink); padding-left: 10px;
+}
+
+/* ── EXAM TERMINAL STYLES ── */
+.exam-container {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 20px;
+}
+.exam-header {
+  font-family: 'Orbitron'; color: var(--neon-red); font-size: 16px;
+  border-bottom: 2px solid var(--neon-red); padding-bottom: 10px; margin-bottom: 20px;
+  text-shadow: 0 0 10px rgba(255,0,64,0.5);
+}
+.exam-tabs {
+  display: flex; gap: 10px; margin-bottom: 20px;
+  border-bottom: 1px solid var(--border); padding-bottom: 10px;
+}
+.exam-tab {
+  background: none; border: 1px solid transparent; color: #666;
+  font-family: 'Orbitron'; font-size: 10px; padding: 8px 15px; cursor: pointer; transition: 0.3s;
+}
+.exam-tab:hover { color: var(--neon-blue); border-color: var(--neon-blue); }
+.exam-tab.active {
+  color: var(--neon-red); border-color: var(--neon-red);
+  box-shadow: 0 0 10px rgba(255,0,64,0.3);
+}
+.exam-content { display: none; }
+.exam-content.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.schedule-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.schedule-table th {
+  background: rgba(255,0,64,0.1); color: var(--neon-red);
+  font-family: 'Orbitron'; font-size: 9px; padding: 10px; text-align: left; border: 1px solid var(--border);
+}
+.schedule-table td { padding: 12px 10px; border: 1px solid var(--border); color: var(--text); }
+.schedule-table tr:hover { background: rgba(0,243,255,0.05); }
+.exam-status {
+  display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 8px; font-family: 'Orbitron';
+}
+.status-upcoming { background: rgba(255,165,0,0.2); color: var(--neon-orange); border: 1px solid var(--neon-orange); }
+.status-ongoing { background: rgba(0,255,65,0.2); color: var(--neon-green); border: 1px solid var(--neon-green); animation: pulse 2s infinite; }
+.status-completed { background: rgba(0,243,255,0.1); color: var(--neon-blue); border: 1px solid var(--neon-blue); }
+.marks-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;
+}
+.marks-card {
+  background: #0e0e12; border: 1px solid var(--border); padding: 20px;
+  position: relative; overflow: hidden;
+}
+.marks-card:hover { border-color: var(--neon-red); box-shadow: 0 0 15px rgba(255,0,64,0.2); }
+.subject-code {
+  font-family: 'Orbitron'; color: var(--neon-blue); font-size: 10px;
+  position: absolute; top: 15px; right: 15px;
+}
+.subject-name {
+  font-family: 'Orbitron'; color: #fff; font-size: 14px; margin-bottom: 20px;
+  padding-right: 70px; line-height: 1.3;
+}
+.marks-breakdown {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 15px;
+}
+.mark-item {
+  text-align: center; padding: 12px 8px; background: rgba(0,0,0,0.5);
+  border: 1px solid var(--border); position: relative;
+}
+.mark-label { font-size: 8px; color: #666; margin-bottom: 8px; text-transform: uppercase; line-height: 1.2; }
+.mark-value { font-family: 'Orbitron'; font-size: 20px; }
+.mark-max { font-size: 9px; color: #444; margin-top: 3px; }
+.mark-internal { color: var(--neon-blue); }
+.mark-midsem { color: var(--neon-purple); }
+.mark-endsem { color: var(--neon-red); }
+.conversion-note { font-size: 7px; color: #888; margin-top: 5px; font-style: italic; }
+.total-row {
+  margin-top: 20px; padding: 15px;
+  border-top: 2px solid var(--neon-green); display: flex;
+  justify-content: space-between; align-items: center;
+  background: rgba(0,255,65,0.05); border-radius: 4px;
+}
+.total-label { font-size: 11px; color: var(--neon-green); font-family: 'Orbitron'; }
+.total-value { font-family: 'Orbitron'; font-size: 28px; color: var(--neon-green); text-shadow: 0 0 10px rgba(0,255,65,0.5); }
+.total-max { font-size: 12px; color: #666; margin-left: 5px; }
+.progress-bar { height: 4px; background: #222; margin-top: 8px; position: relative; }
+.progress-fill { height: 100%; transition: width 0.5s ease; }
+.progress-internal { background: var(--neon-blue); }
+.progress-midsem { background: var(--neon-purple); }
+.progress-endsem { background: var(--neon-red); }
+.grade-badge {
+  position: absolute; top: 15px; right: 15px; width: 45px; height: 45px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-family: 'Orbitron'; font-size: 16px; font-weight: bold; border: 2px solid;
+}
+.grade-s { background: rgba(0,255,65,0.1); color: var(--neon-green); border-color: var(--neon-green); }
+.grade-a { background: rgba(0,243,255,0.1); color: var(--neon-blue); border-color: var(--neon-blue); }
+.grade-b { background: rgba(188,19,254,0.1); color: var(--neon-purple); border-color: var(--neon-purple); }
+.grade-c { background: rgba(255,165,0,0.1); color: var(--neon-orange); border-color: var(--neon-orange); }
+.grade-f { background: rgba(255,0,64,0.1); color: var(--neon-red); border-color: var(--neon-red); }
+.cgpa-display {
+  background: linear-gradient(135deg, rgba(255,0,64,0.1), rgba(188,19,254,0.1));
+  border: 2px solid var(--neon-red); padding: 20px; text-align: center; margin-bottom: 20px;
+}
+.cgpa-label { font-size: 10px; color: #888; margin-bottom: 5px; }
+.cgpa-value { font-family: 'Orbitron'; font-size: 48px; color: var(--neon-green); text-shadow: 0 0 20px rgba(0,255,65,0.5); }
+.cgpa-scale { font-size: 10px; color: #666; }
+.marks-summary {
+  background: #0e0e12; border: 2px solid var(--neon-blue); padding: 20px; margin-top: 30px;
+}
+.summary-title {
+  font-family: 'Orbitron'; color: var(--neon-blue); font-size: 14px;
+  margin-bottom: 15px; text-align: center;
+}
+.summary-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;
+}
+.summary-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--border);
+}
+.summary-subject { font-size: 11px; color: #888; }
+.summary-total { font-family: 'Orbitron'; font-size: 16px; color: var(--neon-green); }
+.exam-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;
+}
+.exam-stat-box {
+  background: #0e0e12; border: 1px solid var(--border); padding: 15px; text-align: center;
+}
+.exam-stat-value { font-family: 'Orbitron'; font-size: 28px; color: var(--neon-red); }
+.exam-stat-label { font-size: 9px; color: #666; margin-top: 5px; }
+
+/* ── BOOKING STYLES ── */
+.slot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin: 15px 0; }
+.slot {
+  background: #15151a; border: 1px solid var(--border); padding: 8px;
+  font-size: 10px; text-align: center; cursor: pointer; transition: 0.1s;
+}
+.slot:hover { border-color: var(--neon-blue); color: var(--neon-blue); }
+.slot.sel { background: var(--neon-blue); color: #000; font-weight: bold; }
+.slot.booked {
+  background: rgba(255,0,64,0.1); border-color: var(--neon-red);
+  color: var(--neon-red); cursor: not-allowed; opacity: 0.6;
+}
+.f-input {
+  background: #000; border: 1px solid var(--border); color: var(--neon-blue);
+  padding: 8px; width: 100%; margin-top: 5px; font-family: 'JetBrains Mono';
+}
+.btn-main {
+  width: 100%; padding: 12px; margin-top: 10px; background: none;
+  border: 1px solid var(--neon-purple); color: var(--neon-purple);
+  font-family: 'Orbitron'; font-weight: bold; cursor: pointer; transition: 0.3s;
+}
+.btn-main:hover {
+  background: var(--neon-purple); color: #fff;
+  box-shadow: 0 0 20px var(--neon-purple);
+}
+.alert { font-size: 11px; padding: 10px; margin: 10px 0; border: 1px solid; display: none; }
+.alert-success { color: var(--neon-blue); border-color: var(--neon-blue); background: rgba(0,243,255,0.05); }
+.alert-error { color: var(--neon-red); border-color: var(--neon-red); background: rgba(255,0,64,0.05); }
+
+/* ── AI SUGGESTION ── */
+.ai-box {
+  background: rgba(188, 19, 254, 0.05); border: 1px solid var(--neon-purple);
+  padding: 15px; font-size: 12px; margin-bottom: 15px;
+}
+.ai-prefix { color: var(--neon-purple); }
+
+/* ── CALENDAR MODAL ── */
+.cal-modal {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+  z-index: 200; align-items: center; justify-content: center;
+}
+.cal-modal.show { display: flex; }
+.cal-modal-content {
+  background: var(--surface); border: 1px solid var(--neon-blue);
+  padding: 20px; max-width: 400px; width: 90%;
+  box-shadow: 0 0 30px rgba(0,243,255,0.2);
+}
+.cal-modal-title { font-family: 'Orbitron'; color: var(--neon-blue); margin-bottom: 10px; }
+.cal-modal-close {
+  background: none; border: 1px solid var(--neon-red); color: var(--neon-red);
+  padding: 5px 15px; font-family: 'Orbitron'; font-size: 10px; cursor: pointer;
+  margin-top: 15px;
+}
+</style>
+</head>
+<body>
+
+<!-- ── BOOT SCREEN ── -->
+<div id="boot-screen">
+  <div class="boot-terminal">
+    <div class="boot-line" style="animation-delay:0.1s">> VIT-O-PIA v2.0 BOOT SEQUENCE INITIATED...</div>
+    <div class="boot-line" style="animation-delay:0.3s">> ESTABLISHING SECURE CONNECTION...</div>
+    <div class="boot-line" style="animation-delay:0.5s">> HANDSHAKE: vtop.vitbhopal.ac.in [OK]</div>
+    <div class="boot-line" style="animation-delay:0.7s">> LOADING NEURAL CALENDAR MODULE...</div>
+    <div class="boot-line" style="animation-delay:0.9s">> LOADING CAMPUS TOPOGRAPHY...</div>
+    <div class="boot-line" style="animation-delay:1.1s">> LOADING CHRONOS LINK...</div>
+    <div class="boot-line warn" style="animation-delay:1.3s">> WARNING: FAT COUNTDOWN ACTIVE - 16 DAYS REMAINING</div>
+    <div class="boot-line" style="animation-delay:1.5s">> SYSTEM READY</div>
+    <div class="boot-line" style="animation-delay:1.7s; color:var(--neon-blue)">> AUTHENTICATION REQUIRED</div>
+    <div class="boot-input-line" style="animation-delay:2s; opacity:0; animation: fadeIn 0.3s forwards 2s;">
+      <span class="boot-prompt">ENTER_NAME_</span>
+      <input type="text" id="boot-input" placeholder="Mishika Mishra" maxlength="30" autocomplete="off">
+      <span class="boot-cursor"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN APP ── -->
+<div id="app">
+  <!-- ── TOPBAR ── -->
+  <div class="topbar">
+    <div class="logo">VIT-O-PIA_(v2.0)</div>
+    <nav class="nav">
+      <button class="nav-btn active" onclick="showView('home',this)">DASHBOARD</button>
+      <button class="nav-btn" onclick="showView('map',this)">CAMPUS_MAP</button>
+      <button class="nav-btn" onclick="showView('timetable',this)">CHRONOS_LINK</button>
+      <button class="nav-btn" onclick="showView('calendar',this)">NEURAL_CALENDAR</button>
+      <button class="nav-btn" onclick="showView('exam',this)">EXAM_TERMINAL</button>
+      <button class="nav-btn" onclick="showView('book',this)">TERMINAL_BOOK</button>
+      <button class="nav-btn" onclick="showView('mybookings',this)">MY_SLOTS</button>
+    </nav>
+    <div class="user-pill">
+      <div class="user-name" id="dynamic-name">UNKNOWN_USER</div>
+      <div class="user-id">25BAIXXXXX</div>
+    </div>
+  </div>
+
+  <!-- ── VIEW: HOME ── -->
+  <div class="view active" id="view-home">
+    <div class="grid-main">
+      <div class="stat-row">
+        <div class="stat-card">
+          <div style="font-size:9px">SYSTEM_ONLINE</div>
+          <div class="stat-val" style="color:var(--neon-blue)" id="s-avail">12</div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size:9px">ACTIVE_SLOTS</div>
+          <div class="stat-val" style="color:var(--neon-purple)" id="s-mine">0</div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size:9px">DEMAND_INDEX</div>
+          <div class="stat-val" style="color:var(--neon-pink)" id="s-demand">HIGH</div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size:9px">LATENCY</div>
+          <div class="stat-val" style="color:var(--neon-blue)" id="s-latency">2ms</div>
+        </div>
+      </div>
+
+      <div class="vtop-uplink">
+        <div class="vtop-status">
+          <div class="vtop-indicator"></div>
+          <div>
+            <div style="font-family:'Orbitron'; font-size:12px; color:var(--neon-yellow);">VTOP_PORTAL_ACTIVE</div>
+            <div style="font-size:9px; color:#666;">SECURE_HANDSHAKE: vtop.vitbhopal.ac.in</div>
+          </div>
+        </div>
+        <a href="https://vtop.vitbhopal.ac.in/vtop/login" target="_blank" class="btn-vtop">INITIATE_UPLINK_[]</a>
+      </div>
+
+      <div class="ai-box">
+        <span class="ai-prefix">[AI_SUGGESTION]</span>
+        <span id="ai-home-text">Initializing neural analysis...</span>
+      </div>
+
+      <div class="r-grid" id="home-grid"></div>
+    </div>
+
+    <aside class="news-panel">
+      <div class="news-header">PROCTOR_COMMAND_FEED</div>
+      <div id="proctor-news">
+        <div class="news-item"><span class="news-tag">URGENT // 10:45</span> All students must verify Lab exit logs.</div>
+        <div class="news-item"><span class="news-tag">INFO // 09:12</span> Maintenance in AB2 Floor 3 during weekend.</div>
+        <div class="news-item"><span class="news-tag">ALERT // 08:00</span> New attendance policy updated in portal.</div>
+      </div>
+    </aside>
+  </div>
+  <!-- ── VIEW: MAP ── -->
+  <div class="view" id="view-map">
+    <div class="grid-main">
+      <div class="map-container">
+        <div style="font-family:'Orbitron'; color:var(--neon-blue); font-size:14px; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+          [CAMPUS_TOPOGRAPHY] // VIT_BHOPAL // MADHYA_PRADESH // INDIA
+        </div>
+
+        <div class="map-grid" id="campus-map">
+          <div class="map-location loc-gate" onclick="selectLocation('gate')" data-loc="gate">
+            <div class="loc-icon">🚪</div>
+            <div class="loc-name">MAIN_GATE</div>
+            <div class="loc-type">ENTRY/EXIT</div>
+          </div>
+          <div class="map-location loc-ab1" onclick="selectLocation('ab1')" data-loc="ab1">
+            <div class="loc-icon">🏢</div>
+            <div class="loc-name">ACADEMIC_BLOCK_1</div>
+            <div class="loc-type">LABS/CLASSROOMS</div>
+          </div>
+          <div class="map-location loc-ab2" onclick="selectLocation('ab2')" data-loc="ab2">
+            <div class="loc-icon">🏢</div>
+            <div class="loc-name">ACADEMIC_BLOCK_2</div>
+            <div class="loc-type">LABS/ADMIN</div>
+          </div>
+          <div class="map-location loc-library" onclick="selectLocation('library')" data-loc="library">
+            <div class="loc-icon">📚</div>
+            <div class="loc-name">LAB COMPLEX</div>
+            <div class="loc-type">KNOWLEDGE_HUB</div>
+          </div>
+          <div class="map-location loc-audi" onclick="selectLocation('audi')" data-loc="audi">
+            <div class="loc-icon">🎭</div>
+            <div class="loc-name">AUDITORIUM</div>
+            <div class="loc-type">EVENTS/SEMINARS</div>
+          </div>
+          <div class="map-location loc-hostel" onclick="selectLocation('hostel')" data-loc="hostel">
+            <div class="loc-icon">🏠</div>
+            <div class="loc-name">HOSTEL_COMPLEX</div>
+            <div class="loc-type">RESIDENTIAL</div>
+          </div>
+          <div class="map-location loc-mess" onclick="selectLocation('mess')" data-loc="mess">
+            <div class="loc-icon">🍽️</div>
+            <div class="loc-name">SPECIAL BLOCK</div>
+            <div class="loc-type">DINING</div>
+          </div>
+          <div class="map-location loc-sports" onclick="selectLocation('sports')" data-loc="sports">
+            <div class="loc-icon">⚽</div>
+            <div class="loc-name">SPORTS_COMPLEX</div>
+            <div class="loc-type">RECREATION</div>
+          </div>
+          <div class="map-connections">
+            <div class="connection-line con-ab1-ab2"></div>
+            <div class="connection-line con-ab1-audi"></div>
+            <div class="connection-line con-ab2-hostel"></div>
+          </div>
+        </div>
+
+        <div class="map-info" id="map-info">
+          <div style="font-family:'Orbitron'; color:var(--neon-pink); font-size:12px; margin-bottom:8px;" id="info-title">LOCATION_DATA</div>
+          <div style="font-size:10px; color:#888; line-height:1.6;" id="info-desc">Select a location to view details...</div>
+          <div style="margin-top:10px; display:flex; gap:10px;">
+            <button class="nav-btn" style="font-size:8px;" onclick="navigateToLocation()">[NAVIGATE]</button>
+            <button class="nav-btn" style="font-size:8px;" onclick="bookLocation()">[BOOK_RESOURCE]</button>
+          </div>
+        </div>
+
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot dot-academic"></div>ACADEMIC</div>
+          <div class="legend-item"><div class="legend-dot dot-hostel"></div>RESIDENTIAL</div>
+          <div class="legend-item"><div class="legend-dot dot-amenity"></div>AMENITIES</div>
+          <div class="legend-item"><div class="legend-dot dot-transport"></div>TRANSPORT</div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="news-panel">
+      <div class="news-header">LOCATION_INTEL</div>
+      <div style="font-size:10px; color:#666; margin-bottom:10px;">
+        <div style="color:var(--neon-blue); margin-bottom:5px;">>> GPS_COORDINATES</div>
+        <div>23.2599° N, 77.4126° E</div>
+        <div style="margin-top:8px; color:var(--neon-blue);">>> CAMPUS_AREA</div>
+        <div>200+ Acres</div>
+        <div style="margin-top:8px; color:var(--neon-blue);">>> TOTAL_BLOCKS</div>
+        <div>8 Buildings</div>
+      </div>
+      <div style="border-top:1px solid var(--border); padding-top:10px; margin-top:10px;">
+        <div style="font-size:9px; color:var(--neon-purple); margin-bottom:5px;">WEATHER_STATUS</div>
+        <div style="font-size:20px;">☀️ 32°C</div>
+        <div style="font-size:9px; color:#555;">Clear Sky | Humidity: 45%</div>
+      </div>
+      <div style="border-top:1px solid var(--border); padding-top:10px; margin-top:10px;">
+        <div style="font-size:9px; color:var(--neon-green); margin-bottom:5px;">SHUTTLE_STATUS</div>
+        <div style="font-size:11px;">🚌 Running</div>
+        <div style="font-size:9px; color:#555;">Next: 5 mins</div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ── VIEW: TIMETABLE ── -->
+  <div class="view" id="view-timetable">
+    <div class="grid-main">
+      <div class="tt-container">
+        <div style="font-family:'Orbitron'; color:var(--neon-purple); font-size:14px; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+          [CHRONOS_LINK] // SEMESTER_SCHEDULE // <span class="dynamic-name-display">UNKNOWN_USER</span>
+        </div>
+
+        <table class="tt-table">
+          <thead>
+            <tr>
+              <th style="width:40px">DAY</th>
+              <th>08:30-10:00</th>
+              <th>10:05-11:35</th>
+              <th>11:40-13:10</th>
+              <th style="width:40px">LUNCH</th>
+              <th>13:15-14:45</th>
+              <th>14:50-16:20</th>
+              <th>16:25-17:55</th>
+              <th>18:00-19:30</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="day-label">MON</td>
+              <td>A11</td>
+              <td class="tt-slot-active"><span class="tt-subject">CSA2001</span><span class="tt-venue">AB02-230</span></td>
+              <td>C11</td>
+              <td rowspan="4" class="lunch-break">L<br>U<br>N<br>C<br>H</td>
+              <td class="tt-slot-active"><span class="tt-subject">PHY1003</span><span class="tt-venue">AB-507</span></td>
+              <td class="tt-slot-active"><span class="tt-subject">CHY1006</span><span class="tt-venue">AB-302</span></td>
+              <td>B21</td>
+              <td class="tt-slot-active"><span class="tt-subject">SST1003</span><span class="tt-venue">AB-418</span></td>
+            </tr>
+            <tr>
+              <td class="day-label">TUE</td>
+              <td>D11</td>
+              <td>E11</td>
+              <td>F11</td>
+              <td>D21</td>
+              <td>E14</td>
+              <td>E21</td>
+              <td class="tt-slot-active"><span class="tt-subject">CSE0001</span><span class="tt-venue">CR-018</span></td>
+            </tr>
+            <tr>
+              <td class="day-label">WED</td>
+              <td>A12</td>
+              <td class="tt-slot-active"><span class="tt-subject">CSA2001</span><span class="tt-venue">AB02-230</span></td>
+              <td>C12</td>
+              <td class="tt-slot-active"><span class="tt-subject">PHY1003</span><span class="tt-venue">AB-507</span></td>
+              <td class="tt-slot-active"><span class="tt-subject">UHV0002</span><span class="tt-venue">CR-018</span></td>
+              <td>B22</td>
+              <td class="tt-slot-active"><span class="tt-subject">ENG2005</span><span class="tt-venue">AB-419</span></td>
+            </tr>
+            <tr>
+              <td class="day-label">FRI</td>
+              <td>A13</td>
+              <td class="tt-slot-active"><span class="tt-subject">CSA2001</span><span class="tt-venue">AB02-230</span></td>
+              <td>C13</td>
+              <td class="tt-slot-active"><span class="tt-subject">PHY1003</span><span class="tt-venue">AB-507</span></td>
+              <td>C14</td>
+              <td class="tt-slot-active"><span class="tt-subject">UHV0002</span><span class="tt-venue">CR-018</span></td>
+              <td>B24</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <aside class="news-panel">
+      <div class="news-header">TIMETABLE_INTEL</div>
+      <div style="font-size:10px; color:#666;">>> CURRENT_SESSION: ACTIVE</div>
+    </aside>
+  </div>
+  <!-- ── VIEW: CALENDAR ── -->
+  <div class="view" id="view-calendar">
+    <div class="grid-main">
+      <div class="cal-container">
+        <div style="font-family:'Orbitron'; color:var(--neon-blue); font-size:14px; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+          [NEURAL_CALENDAR] // ACADEMIC_TIMELINE_v2.0
+        </div>
+
+        <div class="cal-month-title">APRIL_2026</div>
+        <div class="cal-grid" id="cal-april"></div>
+
+        <div class="cal-month-title">MAY_2026</div>
+        <div class="cal-grid" id="cal-may"></div>
+      </div>
+    </div>
+
+    <aside class="news-panel">
+      <div class="news-header">ACADEMIC_INTEL</div>
+      <div style="font-size:10px; color:#666;">
+        <div style="color:var(--neon-red); margin-bottom:5px;">>> FAT_COUNTDOWN</div>
+        <div style="font-size:18px; font-family:'Orbitron'; color:#fff;" id="fat-timer">CALCULATING...</div>
+        <div style="margin-top:15px; color:var(--neon-yellow);">>> UPCOMING_HOLIDAY</div>
+        <div style="font-size:11px;">14-APR: Ambedkar Jayanti</div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Calendar Event Modal -->
+  <div class="cal-modal" id="cal-modal" onclick="closeCalModal(event)">
+    <div class="cal-modal-content" onclick="event.stopPropagation()">
+      <div class="cal-modal-title" id="cal-modal-title">EVENT_DETAILS</div>
+      <div style="font-size:11px; color:#888; line-height:1.6;" id="cal-modal-body"></div>
+      <button class="cal-modal-close" onclick="closeCalModal()">[CLOSE]</button>
+    </div>
+  </div>
+
+  <!-- ── VIEW: EXAM ── -->
+  <div class="view" id="view-exam">
+    <div class="grid-main">
+      <div class="exam-container">
+        <div class="exam-header">[EXAM_TERMINAL] // ACADEMIC_PERFORMANCE_TRACKER</div>
+
+        <div class="exam-tabs">
+          <button class="exam-tab active" onclick="switchExamTab('schedule', this)">[SCHEDULE]</button>
+          <button class="exam-tab" onclick="switchExamTab('marks', this)">[MARKS]</button>
+          <button class="exam-tab" onclick="switchExamTab('analysis', this)">[ANALYSIS]</button>
+        </div>
+
+        <div class="exam-content active" id="exam-schedule">
+          <div class="exam-stats">
+            <div class="exam-stat-box">
+              <div class="exam-stat-value">04</div>
+              <div class="exam-stat-label">UPCOMING_EXAMS</div>
+            </div>
+            <div class="exam-stat-box">
+              <div class="exam-stat-value">02</div>
+              <div class="exam-stat-label">ONGOING</div>
+            </div>
+            <div class="exam-stat-box">
+              <div class="exam-stat-value">12</div>
+              <div class="exam-stat-label">COMPLETED</div>
+            </div>
+          </div>
+
+          <table class="schedule-table">
+            <thead>
+              <tr>
+                <th>COURSE_CODE</th><th>SUBJECT_NAME</th><th>EXAM_TYPE</th>
+                <th>DATE</th><th>TIME</th><th>VENUE</th><th>STATUS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>CSE3001</td><td>Database Management Systems</td><td>ENDSEM</td>
+                <td>15-APR-2026</td><td>09:00 - 12:00</td><td>AB1-301</td>
+                <td><span class="exam-status status-upcoming">UPCOMING</span></td>
+              </tr>
+              <tr>
+                <td>CSE3002</td><td>Computer Networks</td><td>ENDSEM</td>
+                <td>18-APR-2026</td><td>09:00 - 12:00</td><td>AB1-302</td>
+                <td><span class="exam-status status-upcoming">UPCOMING</span></td>
+              </tr>
+              <tr>
+                <td>MAT2001</td><td>Probability & Statistics</td><td>ENDSEM</td>
+                <td>22-APR-2026</td><td>14:00 - 17:00</td><td>AB2-201</td>
+                <td><span class="exam-status status-upcoming">UPCOMING</span></td>
+              </tr>
+              <tr>
+                <td>HUM1002</td><td>Technical Communication</td><td>INTERNAL_3</td>
+                <td>08-APR-2026</td><td>10:00 - 11:00</td><td>AB1-205</td>
+                <td><span class="exam-status status-ongoing">TODAY</span></td>
+              </tr>
+              <tr>
+                <td>CSE2003</td><td>Data Structures</td><td>ENDSEM</td>
+                <td>28-MAR-2026</td><td>09:00 - 12:00</td><td>AB1-301</td>
+                <td><span class="exam-status status-completed">COMPLETED</span></td>
+              </tr>
+              <tr>
+                <td>CSE2004</td><td>Operating Systems</td><td>MIDSEM</td>
+                <td>15-MAR-2026</td><td>14:00 - 16:00</td><td>AB2-202</td>
+                <td><span class="exam-status status-completed">COMPLETED</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="exam-content" id="exam-marks"></div>
+
+        <div class="exam-content" id="exam-analysis">
+          <div class="cgpa-display">
+            <div class="cgpa-label">CURRENT_CGPA</div>
+            <div class="cgpa-value">8.74</div>
+            <div class="cgpa-scale">/10.00 SCALE</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+            <div style="background:#0e0e12; border:1px solid var(--border); padding:15px;">
+              <div style="font-family:'Orbitron'; color:var(--neon-blue); font-size:11px; margin-bottom:10px;">[SEMESTER_WISE]</div>
+              <div style="font-size:10px; color:#888; line-height:2;">
+                <div style="display:flex; justify-content:space-between;"><span>SEMESTER_1:</span> <span style="color:var(--neon-green)">8.5</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>SEMESTER_2:</span> <span style="color:var(--neon-green)">8.7</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>SEMESTER_3:</span> <span style="color:var(--neon-green)">8.9</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>SEMESTER_4:</span> <span style="color:var(--neon-blue)">8.74 (CURRENT)</span></div>
+              </div>
+            </div>
+            <div style="background:#0e0e12; border:1px solid var(--border); padding:15px;">
+              <div style="font-family:'Orbitron'; color:var(--neon-purple); font-size:11px; margin-bottom:10px;">[PERFORMANCE_METRICS]</div>
+              <div style="font-size:10px; color:#888; line-height:2;">
+                <div style="display:flex; justify-content:space-between;"><span>ATTENDANCE:</span> <span style="color:var(--neon-green)">87%</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>ASSIGNMENTS:</span> <span style="color:var(--neon-green)">92%</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>LAB_PERFORMANCE:</span> <span style="color:var(--neon-blue)">85%</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>PROJECTS:</span> <span style="color:var(--neon-green)">90%</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:20px; background:#0e0e12; border:1px solid var(--border); padding:15px;">
+            <div style="font-family:'Orbitron'; color:var(--neon-red); font-size:11px; margin-bottom:10px;">[AI_PREDICTION]</div>
+            <div style="font-size:10px; color:#888;">
+              Based on current performance trajectory, predicted CGPA at graduation:
+              <span style="color:var(--neon-green); font-family:'Orbitron';">8.9 - 9.1</span>
+            </div>
+            <div style="margin-top:10px; font-size:9px; color:#555;">
+              > Recommendation: Focus on Endsem preparation for MAT2001 to maintain current standing.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="news-panel">
+      <div class="news-header">EXAM_INTEL</div>
+      <div style="font-size:10px; color:#666;">
+        <div style="color:var(--neon-red); margin-bottom:5px;">>> NEXT_EXAM</div>
+        <div style="font-size:14px; font-family:'Orbitron';">CSE3001</div>
+        <div style="font-size:9px;">15-APR | AB1-301</div>
+      </div>
+    </aside>
+  </div>
+  <!-- ── VIEW: BOOK ── -->
+  <div class="view" id="view-book">
+    <div class="grid-main">
+      <div style="display:flex; gap:5px; margin-bottom:10px;">
+        <button class="nav-btn active" style="font-size:9px" onclick="switchTab('lab',this)">[LABS]</button>
+        <button class="nav-btn" style="font-size:9px" onclick="switchTab('lib',this)">[LIBRARY]</button>
+        <button class="nav-btn" style="font-size:9px" onclick="switchTab('audi',this)">[AUDI]</button>
+      </div>
+      <div class="r-grid" id="book-grid"></div>
+    </div>
+
+    <div class="news-panel">
+      <div class="news-header">SLOT_CONFIG</div>
+      <div style="font-size:10px; margin-bottom:5px;">RESOURCE: <span id="bp-res-name" style="color:var(--neon-blue)">-</span></div>
+      <div class="slot-grid" id="slot-grid"></div>
+      <input type="date" id="f-date" class="f-input">
+      <input type="text" id="f-purpose" class="f-input" placeholder="ACCESS_PURPOSE">
+      <div class="alert alert-success" id="alert-success">SLOT_LOCKED_SUCCESSFULLY</div>
+      <div class="alert alert-error" id="alert-error">INVALID_SELECTION</div>
+      <button class="btn-main" onclick="confirmBooking()">EXECUTE_RESERVATION</button>
+    </div>
+  </div>
+
+  <!-- ── VIEW: MY BOOKINGS ── -->
+  <div class="view" id="view-mybookings">
+    <div class="grid-main" id="mb-list"></div>
+    <div class="news-panel">
+      <div class="news-header">SYSTEM_LOG</div>
+      <div style="font-size:9px; color:#555;">Bookings are auto-released after 15 mins of no-show.</div>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<script>
+// ── DATA ──
+const DB_RESOURCES = [
+  {id:1, name:"CS Lab AB1-301", cat:"lab", emoji:"[CPU]", loc:"AB1-F3", fill:30},
+  {id:2, name:"CS Lab AB2-202", cat:"lab", emoji:"[CPU]", loc:"AB2-F2", fill:65},
+  {id:3, name:"DS Lab AB1-305", cat:"lab", emoji:"[CPU]", loc:"AB1-F3", fill:45},
+  {id:4, name:"Network Lab AB2-401", cat:"lab", emoji:"[CPU]", loc:"AB2-F4", fill:20},
+  {id:5, name:"Main Library", cat:"lib", emoji:"[DB]", loc:"AB1-G", fill:40},
+  {id:6, name:"Digital Library", cat:"lib", emoji:"[DB]", loc:"AB1-L2", fill:55},
+  {id:7, name:"Audi 1", cat:"audi", emoji:"[AMP]", loc:"AB1-G", fill:10},
+  {id:8, name:"Seminar Hall", cat:"audi", emoji:"[AMP]", loc:"AB2-G", fill:25},
+];
+
+const LOCATION_DATA = {
+  gate: { name: "MAIN_GATE", desc: "Primary entry/exit point. Security checkpoint active 24/7. Student ID mandatory.", type: "transport" },
+  ab1: { name: "ACADEMIC_BLOCK_1", desc: "Houses CS/IT labs, classrooms, faculty offices. Elevator access available.", type: "academic" },
+  ab2: { name: "ACADEMIC_BLOCK_2", desc: "Admin block, examination cell, conference halls. Restricted access after 6PM.", type: "academic" },
+  library: { name: "LAB COMPLEX", desc: "4 floors of knowledge repository. Digital section on L2. Silent zone enforced.", type: "academic" },
+  audi: { name: "AUDITORIUM", desc: "1200 capacity. Stage, AV systems. Booking required 48hrs prior.", type: "amenity" },
+  hostel: { name: "HOSTEL_COMPLEX", desc: "Boys & Girls separate blocks. WiFi enabled. Curfew: 9PM (weekdays)", type: "hostel" },
+  mess: { name: "SPECIAL BLOCK", desc: "Multi-cuisine dining. Meal timings: 7-9AM, 12-2PM, 7-9PM.", type: "amenity" },
+  sports: { name: "SPORTS_COMPLEX", desc: "Cricket ground, basketball courts, gymnasium. Open 5AM-9PM daily.", type: "amenity" }
+};
+
+const CALENDAR_DATA = {
+  april: [
+    {d:1, s:"instructional", t:"INSTRUCTIONAL"},
+    {d:3, s:"holiday", t:"GOOD_FRIDAY"},
+    {d:4, s:"instructional", t:"REMOTE_LEARN"},
+    {d:5, s:"none", t:"NO_INST"},
+    {d:11, s:"instructional", t:"REMOTE_LEARN"},
+    {d:12, s:"none", t:"NO_INST"},
+    {d:14, s:"holiday", t:"AMBEDKAR_JAYANTI"},
+    {d:18, s:"instructional", t:"REMOTE_LEARN"},
+    {d:19, s:"none", t:"NO_INST"},
+    {d:22, s:"instructional", t:"LAST_DAY"},
+    {d:23, s:"fat", t:"FAT_START"},
+    {d:24, s:"fat", t:"FAT_EXAM"},
+    {d:25, s:"fat", t:"FAT_EXAM"},
+    {d:27, s:"fat", t:"FAT_EXAM"},
+    {d:28, s:"fat", t:"FAT_EXAM"},
+    {d:29, s:"fat", t:"FAT_EXAM"},
+    {d:30, s:"fat", t:"FAT_EXAM"},
+  ],
+  may: [
+    {d:1, s:"fat", t:"FAT_EXAM"},
+    {d:2, s:"fat", t:"FAT_EXAM"},
+    {d:4, s:"fat", t:"FAT_EXAM"},
+    {d:5, s:"fat", t:"FAT_EXAM"},
+    {d:6, s:"fat", t:"FAT_EXAM"},
+    {d:7, s:"fat", t:"FAT_EXAM"},
+    {d:8, s:"fat", t:"FAT_EXAM"},
+    {d:9, s:"fat", t:"FAT_END"},
+  ]
+};
+
+const MARKS_DATA = [
+  {code:"CSE3001", name:"Database Management Systems", internal:34, midsem:42, endsem:null, maxInt:40, maxMid:50, maxEnd:100, grade:"B"},
+  {code:"CSE3002", name:"Computer Networks", internal:38, midsem:45, endsem:null, maxInt:40, maxMid:50, maxEnd:100, grade:"A"},
+  {code:"MAT2001", name:"Probability & Statistics", internal:28, midsem:35, endsem:null, maxInt:40, maxMid:50, maxEnd:100, grade:"C"},
+  {code:"CSE2003", name:"Data Structures", internal:36, midsem:40, endsem:78, maxInt:40, maxMid:50, maxEnd:100, grade:"S"},
+  {code:"CSE2004", name:"Operating Systems", internal:32, midsem:38, endsem:null, maxInt:40, maxMid:50, maxEnd:100, grade:"B"},
+  {code:"HUM1002", name:"Technical Communication", internal:30, midsem:null, endsem:null, maxInt:40, maxMid:50, maxEnd:100, grade:"C"},
+  {code:"CSE3003", name:"Software Engineering", internal:35, midsem:44, endsem:null, maxInt:40, maxMid:50, maxEnd:100, grade:"B"},
+  {code:"CSE3004", name:"Web Technology", internal:40, midsem:47, endsem:null, maxInt:40, maxMid:50, maxEnd:100, grade:"A"},
+];
+
+const AI_SUGGESTIONS = [
+  "AB1-301 is optimal for your 2PM study block.",
+  "Library L2 has 4 seats available. Quiet zone recommended.",
+  "CS Lab AB2-202 load at 65%. Consider AB1-301 instead.",
+  "Next class: CSA2001 at AB02-230 in 45 minutes.",
+  "FAT approaching. Focus on MAT2001 weak areas detected.",
+  "Audi 1 available at 16:00 for group study session."
+];
+
+const slots = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"];
+let myBookings = [], selRes = null, selSlot = null, selDate = null, activeLocation = null;
+let currentUser = "UNKNOWN_USER";
+
+// ── BOOT SEQUENCE ──
+document.getElementById('boot-input').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter' && this.value.trim()) {
+    currentUser = this.value.trim();
+    document.getElementById('boot-screen').style.opacity = '0';
+    document.getElementById('boot-screen').style.transition = 'opacity 0.5s';
+    setTimeout(() => {
+      document.getElementById('boot-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      initApp();
+    }, 500);
+  }
+});
+
+function initApp() {
+  document.getElementById('dynamic-name').textContent = currentUser;
+  document.querySelectorAll('.dynamic-name-display').forEach(el => el.textContent = currentUser);
+  renderGrid('home-grid', DB_RESOURCES);
+  renderGrid('book-grid', DB_RESOURCES.filter(r => r.cat === 'lab'));
+  renderSlots();
+  renderCalendar();
+  renderMarks();
+  updateAISuggestion();
+  updateLiveStats();
+  updateFATTimer();
+  setInterval(updateLiveStats, 3000);
+  setInterval(updateAISuggestion, 8000);
+}
+
+// ── VIEW SWITCHING ──
+function showView(v, btn) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  const viewEl = document.getElementById('view-' + v);
+  if (viewEl) {
+    viewEl.classList.add('active');
+    viewEl.style.display = 'grid';
+  }
+  if (btn) btn.classList.add('active');
+  if (v === 'mybookings') renderMyBookings();
+}
+
+// ── AI SUGGESTIONS ──
+function updateAISuggestion() {
+  const suggestion = AI_SUGGESTIONS[Math.floor(Math.random() * AI_SUGGESTIONS.length)];
+  document.getElementById('ai-home-text').textContent = suggestion;
+}
+
+// ── LIVE STATS ──
+function updateLiveStats() {
+  const latency = Math.floor(Math.random() * 5) + 1;
+  document.getElementById('s-latency').textContent = latency + 'ms';
+  const avail = 10 + Math.floor(Math.random() * 5);
+  document.getElementById('s-avail').textContent = avail;
+  const demands = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+  document.getElementById('s-demand').textContent = demands[Math.floor(Math.random() * demands.length)];
+}
+
+// ── FAT TIMER ──
+function updateFATTimer() {
+  const fatDate = new Date('2026-04-23');
+  const now = new Date();
+  const diff = Math.ceil((fatDate - now) / (1000 * 60 * 60 * 24));
+  document.getElementById('fat-timer').textContent = diff > 0 ? diff + ' DAYS' : 'IN PROGRESS';
+}
+
+// ── MAP ──
+function selectLocation(loc) {
+  document.querySelectorAll('.map-location').forEach(el => el.classList.remove('active'));
+  const el = document.querySelector(`[data-loc="${loc}"]`);
+  if (el) el.classList.add('active');
+  activeLocation = loc;
+  const data = LOCATION_DATA[loc];
+  document.getElementById('info-title').textContent = data.name;
+  document.getElementById('info-desc').textContent = data.desc;
+  document.getElementById('map-info').classList.add('show');
+}
+
+function navigateToLocation() {
+  if (!activeLocation) return;
+  alert(`[NAVIGATION_INITIATED] Routing to ${LOCATION_DATA[activeLocation].name}...`);
+}
+
+function bookLocation() {
+  if (!activeLocation) return;
+  const loc = LOCATION_DATA[activeLocation];
+  if (loc.type === 'academic' || loc.type === 'amenity') {
+    showView('book', document.querySelectorAll('.nav-btn')[5]);
+  } else {
+    alert('[ERROR] This location does not support resource booking.');
+  }
+}
+
+// ── EXAM TABS ──
+function switchExamTab(tab, btn) {
+  document.querySelectorAll('.exam-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.exam-tab').forEach(el => el.classList.remove('active'));
+  const content = document.getElementById('exam-' + tab);
+  if (content) content.classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+// ── CALENDAR ──
+function renderCalendar() {
+  renderMonth('cal-april', 'april', 3); // April starts on Wed (column 4
+
